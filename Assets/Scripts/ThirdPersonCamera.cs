@@ -47,7 +47,7 @@ public class ThirdPersonCamera : MonoBehaviour
         // 1. Gather mouse input
         float mouseX = Input.GetAxis("Mouse X") * sensitivityX;
         float mouseY = Input.GetAxis("Mouse Y") * sensitivityY;
-
+        
         currentYaw += mouseX;
         // Invert vertical input so pushing mouse up tilts camera up
         currentPitch -= mouseY;

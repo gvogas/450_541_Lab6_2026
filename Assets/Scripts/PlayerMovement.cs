@@ -9,16 +9,21 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float moveSpeed = 7f;      // units per second
     [SerializeField] private float turnSpeed = 150f;    // degrees per second
     [SerializeField] private float jumpForce = 5f;      // strength of the jump
+    [SerializeField] private float doubleJumpForce = 4f;
 
     [Header("Ground Check Settings")]
     [SerializeField] private float groundDistance = 0.5f; // ray length
     [SerializeField] private LayerMask groundMask;        // ground layers
 
+    public float sensitivityX = 3.0f;
     private Rigidbody rb;               // the physics body we move
     private Vector3 moveDirection;      // worked out from input in Update()
     private float turnInput;            // horizontal input for rotation
     private bool isGrounded;            // true when standing on the ground
     private bool jumpRequested = false; // set in Update(), used later
+    private bool doubleJumpRequested = false; // set in TryDoubleJump()
+    private bool hasDoubleJumped = false;     // one per jump
+
 
     public bool IsGrounded => isGrounded;
 
@@ -34,20 +39,34 @@ public class PlayerMovement : MonoBehaviour
         isGrounded = Physics.Raycast(transform.position + transform.up*groundDistance/2, -transform.up, groundDistance, groundMask);
 
         // 2. Read Inputs
-        turnInput = Input.GetAxisRaw("Horizontal"); // A/D or Left/Right turn input
+        float moveX = Input.GetAxisRaw("Horizontal"); // A/D or Left/Right turn input
         float moveZ = Input.GetAxisRaw("Vertical");  // W/S or Up/Down forward/backward
 
-        // Rotate the player transform in Update for responsive turning visuals
-        transform.Rotate(0f, turnInput * turnSpeed * Time.deltaTime, 0f);
+        Vector3 forward = Camera.main.transform.forward;
+        Vector3 right = Camera.main.transform.right;
 
+        // Ignore Y-axis movement to prevent unwanted tilting
+        forward.y = 0f;
+        right.y = 0f;
+
+        //transform.forward = forward;
         // Calculate forward movement relative to current facing direction
-        moveDirection = transform.forward * moveZ;
+        moveDirection = forward * moveZ + right * moveX;
+
+        if (moveDirection.magnitude > 0f)
+            transform.forward = moveDirection.normalized();
 
         // 3. Handle Jump Input
         if (Input.GetButtonDown("Jump") && isGrounded)
         {
             jumpRequested = true;
         }
+        // Back on the ground: the double jump is available again
+        if (isGrounded)
+        {
+            hasDoubleJumped = false;
+        }
+
     }
 
     private void FixedUpdate()
@@ -56,9 +75,23 @@ public class PlayerMovement : MonoBehaviour
 
         if (jumpRequested)
         {
-            Jump();
+            Jump(jumpForce);
             jumpRequested = false;
         }
+
+        // NEW: the second jump, in mid-air
+        if (doubleJumpRequested)
+        {
+            Jump(doubleJumpForce);
+            doubleJumpRequested = false;
+        }
+    }
+ 
+    private void Jump(float force)
+    {
+        rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f,
+                                        rb.linearVelocity.z);
+        rb.AddForce(Vector3.up * force, ForceMode.VelocityChange);
     }
 
     private void MovePlayer()
@@ -70,9 +103,17 @@ public class PlayerMovement : MonoBehaviour
         rb.linearVelocity = new Vector3(targetVelocity.x, rb.linearVelocity.y, targetVelocity.z);
     }
 
-    private void Jump()
+ 
+    // Tries to jump a second time in mid-air.
+    // Returns true if the double jump really happened.
+    public bool TryDoubleJump()
     {
-        rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-        rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
+        // Not allowed on the ground, or if it was already used
+        if (isGrounded || hasDoubleJumped) return false;
+ 
+        doubleJumpRequested = true;
+        hasDoubleJumped = true;
+        return true;
     }
+
 }
