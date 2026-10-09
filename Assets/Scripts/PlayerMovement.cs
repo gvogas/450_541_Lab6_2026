@@ -54,7 +54,7 @@ public class PlayerMovement : MonoBehaviour
         moveDirection = forward * moveZ + right * moveX;
 
         if (moveDirection.magnitude > 0f)
-            transform.forward = moveDirection.normalized();
+            transform.forward = moveDirection.normalized;
 
         // 3. Handle Jump Input
         if (Input.GetButtonDown("Jump") && isGrounded)

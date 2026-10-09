@@ -9,6 +9,14 @@ public class ScoreManager : MonoBehaviour
     // The single shared instance that any script can reach.
     // "static" means it belongs to the class, not to one object.
     public static ScoreManager Instance { get; private set; }
+    public static int FinalScore { get; private set; }
+ 
+    // Called just before we leave the level
+    public void SaveFinalScore()
+    {
+        FinalScore = Score;
+    }
+
 
 
     // Anyone can read the score, only ScoreManager can change it
